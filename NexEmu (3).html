@@ -13,6 +13,11 @@
             -webkit-user-select: none;
         }
 
+        input, textarea, [contenteditable="true"] {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
 
 
 
@@ -586,12 +591,9 @@
                         <p class="muted space">All settings save instantly to local storage.</p>
                         <div class="settings-grid space">
                             <label>
-                                Button Shape
-                                <select id="buttonShapePicker">
-                                    <option value="8">Soft Rectangle</option>
-                                    <option value="999">Pill</option>
-                                    <option value="0">Square</option>
-                                </select>
+                                Button Corner Radius
+                                <input id="buttonRadiusSlider" type="range" min="0" max="24" step="1" value="10">
+                                <span id="buttonRadiusValue">10px</span>
                             </label>
                             <label>
                                 Corner Radius
@@ -686,7 +688,8 @@
         const sessionTimer = document.getElementById('sessionTimer');
         const cornerRadiusSlider = document.getElementById('cornerRadiusSlider');
         const cornerRadiusValue = document.getElementById('cornerRadiusValue');
-        const buttonShapePicker = document.getElementById('buttonShapePicker');
+        const buttonRadiusSlider = document.getElementById('buttonRadiusSlider');
+        const buttonRadiusValue = document.getElementById('buttonRadiusValue');
         const fontPicker = document.getElementById('fontPicker');
         const uiScaleSlider = document.getElementById('uiScaleSlider');
         const uiScaleValue = document.getElementById('uiScaleValue');
@@ -733,34 +736,31 @@
 
 
         function applyOpiumcoreCustomization() {
-            document.documentElement.style.setProperty('--button-radius', '2px');
-            document.documentElement.style.setProperty('--ui-radius', '6px');
-            document.documentElement.style.setProperty('--ui-font', "'Courier New', 'Consolas', monospace");
-            document.documentElement.style.setProperty('--app-width', '1480');
-            document.documentElement.style.setProperty('--ui-scale', '102');
-            document.body.classList.remove('density-comfortable', 'density-compact', 'density-condensed');
-            document.body.classList.add('density-condensed');
+            const hasUserOverrides = localStorage.getItem('nexemu_theme_initialized_opiumcore') === 'true';
+            if (hasUserOverrides) {
+                applyCustomizationSettings();
+                return;
+            }
 
-            cornerRadiusSlider.value = '6';
-            cornerRadiusValue.textContent = '6px';
-            buttonShapePicker.value = '0';
-            fontPicker.value = "'Courier New', Courier, monospace";
-            uiScaleSlider.value = '102';
-            uiScaleValue.textContent = '102%';
-            layoutWidthSlider.value = '1480';
-            layoutWidthValue.textContent = '1480px';
-            densityPicker.value = 'condensed';
-            [cornerRadiusSlider, uiScaleSlider, layoutWidthSlider].forEach(updateRangeVisual);
+            const defaults = {
+                radius: 6,
+                buttonRadius: 2,
+                font: "'Courier New', 'Consolas', monospace",
+                scale: 102,
+                width: 1480,
+                density: 'condensed'
+            };
+
+            localStorage.setItem('nexemu_corner_radius', String(defaults.radius));
+            localStorage.setItem('nexemu_button_radius', String(defaults.buttonRadius));
+            localStorage.setItem('nexemu_font', defaults.font);
+            localStorage.setItem('nexemu_ui_scale', String(defaults.scale));
+            localStorage.setItem('nexemu_layout_width', String(defaults.width));
+            localStorage.setItem('nexemu_density', defaults.density);
+            localStorage.setItem('nexemu_theme_initialized_opiumcore', 'true');
+
+            applyCustomizationSettings();
         }
-
-
-
-
-        function isOpiumcoreTheme() {
-            return document.documentElement.getAttribute('data-theme') === 'opiumcore';
-        }
-
-
 
 
         async function requestOpiumcoreUnlock() {
@@ -845,7 +845,7 @@
 
         function applyCustomizationSettings() {
             const radius = Number(localStorage.getItem('nexemu_corner_radius') || 14);
-            const buttonShape = localStorage.getItem('nexemu_button_shape') || '8';
+            const buttonRadius = Number(localStorage.getItem('nexemu_button_radius') || 10);
             const fontFamily = localStorage.getItem('nexemu_font') || "'Trebuchet MS', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
             const uiScale = Number(localStorage.getItem('nexemu_ui_scale') || 100);
             const appWidth = Number(localStorage.getItem('nexemu_layout_width') || 1320);
@@ -858,7 +858,7 @@
 
 
             document.documentElement.style.setProperty('--ui-radius', `${radius}px`);
-            document.documentElement.style.setProperty('--button-radius', `${buttonShape}px`);
+            document.documentElement.style.setProperty('--button-radius', `${buttonRadius}px`);
             document.documentElement.style.setProperty('--ui-font', fontFamily);
             document.documentElement.style.setProperty('--ui-scale', String(uiScale));
             document.documentElement.style.setProperty('--app-width', String(appWidth));
@@ -870,16 +870,16 @@
 
             cornerRadiusSlider.value = String(radius);
             cornerRadiusValue.textContent = `${radius}px`;
-            buttonShapePicker.value = buttonShape;
+            buttonRadiusSlider.value = String(buttonRadius);
+            buttonRadiusValue.textContent = `${buttonRadius}px`;
             fontPicker.value = fontFamily;
             uiScaleSlider.value = String(uiScale);
             uiScaleValue.textContent = `${uiScale}%`;
             layoutWidthSlider.value = String(appWidth);
             layoutWidthValue.textContent = `${appWidth}px`;
-            [cornerRadiusSlider, uiScaleSlider, layoutWidthSlider].forEach(updateRangeVisual);
+            [cornerRadiusSlider, buttonRadiusSlider, uiScaleSlider, layoutWidthSlider].forEach(updateRangeVisual);
             densityPicker.value = density;
             if (settingsOpen !== null) customizationPanel.open = settingsOpen === 'true';
-            if (isOpiumcoreTheme()) applyOpiumcoreCustomization();
         }
 
 
@@ -1079,7 +1079,7 @@
 
 
         document.getElementById('resetPrefs').addEventListener('click', () => {
-            ['nexemu_corner_radius', 'nexemu_button_shape', 'nexemu_font', 'nexemu_ui_scale', 'nexemu_layout_width', 'nexemu_density', 'nexemu_compact_mode', 'nexemu_settings_open', 'nexemu_theme', 'nexemu_opiumcore_auth']
+            ['nexemu_corner_radius', 'nexemu_button_radius', 'nexemu_font', 'nexemu_ui_scale', 'nexemu_layout_width', 'nexemu_density', 'nexemu_compact_mode', 'nexemu_settings_open', 'nexemu_theme', 'nexemu_opiumcore_auth', 'nexemu_theme_initialized_opiumcore']
                 .forEach(key => localStorage.removeItem(key));
             opiumcoreAuthenticated = false;
             setTheme('coral');
@@ -1095,28 +1095,24 @@
 
 
         cornerRadiusSlider.addEventListener('input', (e) => {
-            if (isOpiumcoreTheme()) { applyOpiumcoreCustomization(); return; }
             const radius = Number(e.target.value);
             document.documentElement.style.setProperty('--ui-radius', `${radius}px`);
             cornerRadiusValue.textContent = `${radius}px`;
             updateRangeVisual(e.target);
             localStorage.setItem('nexemu_corner_radius', String(radius));
         });
-
-
-
-
-        buttonShapePicker.addEventListener('change', (e) => {
-            if (isOpiumcoreTheme()) { applyOpiumcoreCustomization(); return; }
-            document.documentElement.style.setProperty('--button-radius', `${e.target.value}px`);
-            localStorage.setItem('nexemu_button_shape', e.target.value);
+        buttonRadiusSlider.addEventListener('input', (e) => {
+            const radius = Number(e.target.value);
+            document.documentElement.style.setProperty('--button-radius', `${radius}px`);
+            buttonRadiusValue.textContent = `${radius}px`;
+            updateRangeVisual(e.target);
+            localStorage.setItem('nexemu_button_radius', String(radius));
         });
 
 
 
 
         fontPicker.addEventListener('change', (e) => {
-            if (isOpiumcoreTheme()) { applyOpiumcoreCustomization(); return; }
             document.documentElement.style.setProperty('--ui-font', e.target.value);
             localStorage.setItem('nexemu_font', e.target.value);
         });
@@ -1125,7 +1121,6 @@
 
 
         uiScaleSlider.addEventListener('input', (e) => {
-            if (isOpiumcoreTheme()) { applyOpiumcoreCustomization(); return; }
             const scale = Number(e.target.value);
             document.documentElement.style.setProperty('--ui-scale', String(scale));
             uiScaleValue.textContent = `${scale}%`;
@@ -1137,7 +1132,6 @@
 
 
         layoutWidthSlider.addEventListener('input', (e) => {
-            if (isOpiumcoreTheme()) { applyOpiumcoreCustomization(); return; }
             const width = Number(e.target.value);
             document.documentElement.style.setProperty('--app-width', String(width));
             layoutWidthValue.textContent = `${width}px`;
@@ -1149,7 +1143,6 @@
 
 
         densityPicker.addEventListener('change', (e) => {
-            if (isOpiumcoreTheme()) { applyOpiumcoreCustomization(); return; }
             const density = e.target.value;
             document.body.classList.remove('density-comfortable', 'density-compact', 'density-condensed');
             document.body.classList.add(`density-${density}`);
@@ -1170,7 +1163,7 @@
         document.getElementById('shortcutsBtn').addEventListener('click', () => shortcutsDialog.showModal());
         document.getElementById('closeShortcuts').addEventListener('click', () => shortcutsDialog.close());
         document.addEventListener('keydown', (e) => {
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Spacebar'].includes(e.key)) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 e.preventDefault();
             }
 
@@ -1198,9 +1191,6 @@
         // Runtime hardening (best effort for browser environments)
         document.addEventListener('contextmenu', (e) => e.preventDefault());
         document.addEventListener('dragstart', (e) => e.preventDefault());
-        document.addEventListener('copy', (e) => e.preventDefault());
-        document.addEventListener('cut', (e) => e.preventDefault());
-        document.addEventListener('paste', (e) => e.preventDefault());
 
         document.addEventListener('keydown', (e) => {
             const key = e.key.toUpperCase();
